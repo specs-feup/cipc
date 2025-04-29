@@ -6,12 +6,17 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -Werror")
 
-include_directories(include)
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(INC_DIR ${CMAKE_SOURCE_DIR}/include)
 
-add_library(cipc_lib STATIC 
-    src/cipc.c)
+include_directories(${INC_DIR})
+
+add_library(cipc_lib STATIC
+    ${SRC_DIR}/cipc.c
+)
 
 add_executable(cipc src/main.c)
 
-target_include_directories(cipc PUBLIC include)
+target_include_directories(cipc PUBLIC ${INC_DIR})
+
 target_link_libraries(cipc cipc_lib)
