@@ -8,6 +8,10 @@ set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -Werror")
 
 include_directories(include)
 
+add_library(cipc_lib STATIC 
+    src/cipc.c)
+
 add_executable(cipc src/main.c)
 
 target_include_directories(cipc PUBLIC include)
+target_link_libraries(cipc cipc_lib)
