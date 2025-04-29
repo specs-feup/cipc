@@ -8,7 +8,5 @@ main (int argc, char **argv)
 {
   printf ("Hello, world!\n");
 
-  test ();
-
   return EXIT_SUCCESS;
 }

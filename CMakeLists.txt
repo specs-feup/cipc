@@ -9,7 +9,7 @@ set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -Werror")
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INC_DIR ${CMAKE_SOURCE_DIR}/include)
 
-include_directories(${INC_DIR})
+include_directories(${INC_DIR} ${INC_DIR}/backend)
 
 add_library(cipc_lib STATIC
     ${SRC_DIR}/cipc.c
