@@ -20,10 +20,14 @@ target_include_directories(cipc PUBLIC ${INC_DIR})
 target_link_libraries(cipc cipc_lib)
 
 # examples target
-add_executable(cipc_client ${EXAMPLES_DIR}/zmq/cipc_zmq_client.c)
-target_include_directories(cipc_client PRIVATE ${INC_DIR})
-target_link_libraries(cipc_client cipc_lib zmq)
+set(EXAMPLES_ZMQ ${EXAMPLES_DIR}/zmq)
+set(EXAMPLES_TCP ${EXAMPLES_DIR}/tcp)
 
-add_executable(cipc_server ${EXAMPLES_DIR}/zmq/cipc_zmq_server.c)
-target_include_directories(cipc_server PRIVATE ${INC_DIR})
-target_link_libraries(cipc_server cipc_lib zmq)
+add_executable(example_zmq_req ${EXAMPLES_ZMQ}/cipc_zmq_req.c)
+add_executable(example_zmq_rep ${EXAMPLES_ZMQ}/cipc_zmq_rep.c)
+
+target_include_directories(example_zmq_req PRIVATE ${INC_DIR})
+target_include_directories(example_zmq_rep PRIVATE ${INC_DIR})
+
+target_link_libraries(example_zmq_req cipc_lib zmq)
+target_link_libraries(example_zmq_rep cipc_lib zmq)

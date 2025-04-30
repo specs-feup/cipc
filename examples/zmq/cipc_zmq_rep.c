@@ -12,6 +12,7 @@ server_free (cipc **server)
   if (server && *server)
     {
       cipc_free (*server);
+
       *server = NULL;
     }
 }
@@ -23,13 +24,16 @@ server_init (cipc **server, const cipc_zmq_config *config)
   if (!*server)
     {
       fprintf (stderr, "Failed to create server instance!\n");
+
       return EXIT_FAILURE;
     }
 
   if ((*server)->init (&(*server)->context, config) != CIPC_OK)
     {
       fprintf (stderr, "Failed to initialize server!\n");
+
       server_free (server);
+
       return EXIT_FAILURE;
     }
 
@@ -39,12 +43,13 @@ server_init (cipc **server, const cipc_zmq_config *config)
 static int
 server_send_message (cipc *server, const char *message)
 {
-  if (server->send (server->context, message, strlen (message) + 1)
-      != CIPC_OK) 
+  if (server->send (server->context, message, strlen (message) + 1) != CIPC_OK)
     {
       fprintf (stderr, "Failed to send message: %s\n", message);
+
       return EXIT_FAILURE;
     }
+
   return EXIT_SUCCESS;
 }
 
@@ -54,8 +59,10 @@ server_recv_message (cipc *server, char *buffer, size_t size)
   if (server->recv (server->context, buffer, size) != CIPC_OK)
     {
       fprintf (stderr, "Failed to receive message!\n");
+
       return EXIT_FAILURE;
     }
+
   return EXIT_SUCCESS;
 }
 
@@ -83,12 +90,13 @@ main (void)
 
   printf ("Server is running and waiting for messages...\n");
 
-  while (1) 
+  while (1)
     {
       if (server_recv_message (server, buffer, sizeof (buffer))
           != EXIT_SUCCESS)
         {
           server_free (&server);
+
           return EXIT_FAILURE;
         }
 
@@ -97,10 +105,12 @@ main (void)
       if (server_send_message (server, response) != EXIT_SUCCESS)
         {
           server_free (&server);
+
           return EXIT_FAILURE;
         }
     }
 
   server_free (&server);
+
   return EXIT_SUCCESS;
 }

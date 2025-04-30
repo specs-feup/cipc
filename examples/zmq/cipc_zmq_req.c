@@ -12,6 +12,7 @@ client_free (cipc **client)
   if (client && *client)
     {
       cipc_free (*client);
+
       *client = NULL;
     }
 }
@@ -23,13 +24,16 @@ client_init (cipc **client, const cipc_zmq_config *config)
   if (!*client)
     {
       fprintf (stderr, "Failed to create client instance!\n");
+
       return EXIT_FAILURE;
     }
 
   if ((*client)->init (&(*client)->context, config) != CIPC_OK)
     {
       fprintf (stderr, "Failed to initialize client!\n");
+
       client_free (client);
+
       return EXIT_FAILURE;
     }
 
@@ -42,8 +46,10 @@ client_send_message (cipc *client, const char *message)
   if (client->send (client->context, message, strlen (message) + 1) != CIPC_OK)
     {
       fprintf (stderr, "Failed to send message: %s\n", message);
+
       return EXIT_FAILURE;
     }
+
   return EXIT_SUCCESS;
 }
 
@@ -53,8 +59,10 @@ client_recv_message (cipc *client, char *buffer, size_t size)
   if (client->recv (client->context, buffer, size) != CIPC_OK)
     {
       fprintf (stderr, "Failed to receive response!\n");
+
       return EXIT_FAILURE;
     }
+
   return EXIT_SUCCESS;
 }
 
@@ -83,16 +91,19 @@ main (void)
   if (client_send_message (client, message) != EXIT_SUCCESS)
     {
       client_free (&client);
+
       return EXIT_FAILURE;
     }
 
   if (client_recv_message (client, buffer, sizeof (buffer)) != EXIT_SUCCESS)
     {
       client_free (&client);
+
       return EXIT_FAILURE;
     }
 
   printf ("Client received: %s\n", buffer);
+
   client_free (&client);
 
   return EXIT_SUCCESS;
