@@ -3,8 +3,6 @@
 
 #include <stdlib.h>
 
-typedef struct cipc cipc;
-
 typedef struct cipc
 {
   int (*init) (void **context, const char *config);
