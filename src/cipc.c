@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 
-extern cipc *cipc_create_zmq (void);
-
 cipc *
 cipc_create (cipc_protocol protocol)
 {

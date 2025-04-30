@@ -12,7 +12,7 @@ set(EXAMPLES_DIR ${CMAKE_SOURCE_DIR}/examples)
 
 include_directories(${INC_DIR} ${INC_DIR}/backend)
 
-add_library(cipc_lib STATIC ${SRC_DIR}/cipc.c)
+add_library(cipc_lib STATIC ${SRC_DIR}/cipc.c ${SRC_DIR}/backend/cipc_zmq.c)
 
 # main target
 add_executable(cipc ${SRC_DIR}/main.c)
@@ -22,8 +22,8 @@ target_link_libraries(cipc cipc_lib)
 # examples target
 add_executable(cipc_client ${EXAMPLES_DIR}/zmq/cipc_zmq_client.c)
 target_include_directories(cipc_client PRIVATE ${INC_DIR})
-target_link_libraries(cipc_client cipc_lib)
+target_link_libraries(cipc_client cipc_lib zmq)
 
 add_executable(cipc_server ${EXAMPLES_DIR}/zmq/cipc_zmq_server.c)
 target_include_directories(cipc_server PRIVATE ${INC_DIR})
-target_link_libraries(cipc_server cipc_lib)
+target_link_libraries(cipc_server cipc_lib zmq)
