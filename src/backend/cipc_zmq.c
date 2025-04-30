@@ -11,12 +11,52 @@ typedef struct
 } cipc_zmq_private;
 
 static cipc_err
+helper_set_sockopts (void *socket, const cipc_zmq_config *config)
+{
+  if (!socket || !config)
+    return CIPC_NULL_PTR;
+
+  zmq_setsockopt (socket, ZMQ_LINGER, &config->sockopt_linger, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_SNDHWM, &config->sockopt_sndhwm, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_RCVHWM, &config->sockopt_rcvhwm, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_SNDTIMEO, &config->sockopt_sndtimeo, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_RCVTIMEO, &config->sockopt_rcvtimeo, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL, &config->sockopt_reconnect_ivl, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL_MAX, &config->sockopt_reconnect_ivl_max, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_IPV6, &config->sockopt_ipv6, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE, &config->sockopt_tcp_keepalive, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_IDLE, &config->sockopt_tcp_keepalive_idle,
+                  sizeof (int));
+  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_CNT, &config->sockopt_tcp_keepalive_cnt, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_INTVL, &config->sockopt_tcp_keepalive_intvl,
+                  sizeof (int));
+  zmq_setsockopt (socket, ZMQ_ROUTER_MANDATORY, &config->sockopt_router_mandatory, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_MAXMSGSIZE, &config->sockopt_maxmsgsize, sizeof (int));
+
+  if (config->sockopt_identity)
+    zmq_setsockopt (socket, ZMQ_IDENTITY, &config->sockopt_identity, sizeof (int));
+
+  if (config->secopt_pubkey && config->secopt_privkey && config->secopt_svkey)
+    {
+      zmq_setsockopt (socket, ZMQ_CURVE_PUBLICKEY, config->secopt_pubkey, 40);
+      zmq_setsockopt (socket, ZMQ_CURVE_SECRETKEY, config->secopt_privkey, 40);
+      zmq_setsockopt (socket, ZMQ_CURVE_SERVERKEY, config->secopt_svkey, 40);
+    }
+
+  if (config->socket_type == ZMQ_SUB && config->topics)
+    for (size_t i = 0; i < config->num_topics; i++)
+      zmq_setsockopt (socket, ZMQ_SUBSCRIBE, config->topics[i], strlen (config->topics[i]));
+
+  return CIPC_OK;
+}
+
+static cipc_err
 cipc_zmq_init (void **context, const void *config)
 {
   if (!context || !config)
     return CIPC_NULL_PTR;
 
-  cipc_zmq_config *zmq_config = (cipc_zmq_config *)config;
+  const cipc_zmq_config *cfg = (const cipc_zmq_config *)config;
 
   cipc_zmq_private *zctx = malloc (sizeof (cipc_zmq_private));
   if (!zctx)
@@ -30,7 +70,7 @@ cipc_zmq_init (void **context, const void *config)
       return CIPC_BAD_ZMQ_CONTEXT;
     }
 
-  zctx->zmq_socket = zmq_socket (zctx->zmq_context, zmq_config->socket);
+  zctx->zmq_socket = zmq_socket (zctx->zmq_context, cfg->socket_type);
   if (!zctx->zmq_socket)
     {
       zmq_ctx_destroy (zctx->zmq_context);
@@ -40,42 +80,31 @@ cipc_zmq_init (void **context, const void *config)
       return CIPC_BAD_ZMQ_SOCKET;
     }
 
-  zmq_setsockopt (zctx->zmq_socket, ZMQ_SNDTIMEO, &zmq_config->timeout,
-                  sizeof (int));
-  zmq_setsockopt (zctx->zmq_socket, ZMQ_RCVTIMEO, &zmq_config->timeout,
-                  sizeof (int));
-  zmq_setsockopt (zctx->zmq_socket, ZMQ_LINGER, &zmq_config->linger,
-                  sizeof (int));
-  zmq_setsockopt (zctx->zmq_socket, ZMQ_SNDHWM, &zmq_config->sndhwm,
-                  sizeof (int));
-  zmq_setsockopt (zctx->zmq_socket, ZMQ_RCVHWM, &zmq_config->rcvhwm,
-                  sizeof (int));
-
-  if (strncmp (zmq_config->address, "tcp://*", 7) == 0)
+  cipc_err err = helper_set_sockopts (zctx->zmq_socket, cfg);
+  if (err != CIPC_OK)
     {
-      if (zmq_bind (zctx->zmq_socket, zmq_config->address) != 0)
-        {
-          fprintf (stderr, "Failed to bind: %s\n",
-                   zmq_strerror (zmq_errno ()));
-          zmq_close (zctx->zmq_socket);
-          zmq_ctx_destroy (zctx->zmq_context);
-          free (zctx);
+      zmq_close (zctx->zmq_socket);
+      zmq_ctx_destroy (zctx->zmq_context);
 
-          return CIPC_BAD_ZMQ_BIND;
-        }
+      free (zctx);
+
+      return err;
     }
-  else
-    {
-      if (zmq_connect (zctx->zmq_socket, zmq_config->address) != 0)
-        {
-          fprintf (stderr, "Failed to connect: %s\n",
-                   zmq_strerror (zmq_errno ()));
-          zmq_close (zctx->zmq_socket);
-          zmq_ctx_destroy (zctx->zmq_context);
-          free (zctx);
 
-          return CIPC_BAD_ZMQ_CONNECT;
-        }
+  int rc = (cfg->mode == CIPC_ZMQ_MODE_BIND) ? zmq_bind (zctx->zmq_socket, cfg->address)
+                                             : zmq_connect (zctx->zmq_socket, cfg->address);
+
+  if (rc != 0)
+    {
+      fprintf (stderr, "ZMQ %s failed: %s\n", cfg->mode == CIPC_ZMQ_MODE_BIND ? "bind" : "connect",
+               zmq_strerror (zmq_errno ()));
+
+      zmq_close (zctx->zmq_socket);
+      zmq_ctx_destroy (zctx->zmq_context);
+
+      free (zctx);
+
+      return (cfg->mode == CIPC_ZMQ_MODE_BIND) ? CIPC_BAD_ZMQ_BIND : CIPC_BAD_ZMQ_CONNECT;
     }
 
   *context = zctx;
