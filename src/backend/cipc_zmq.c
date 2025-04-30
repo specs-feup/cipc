@@ -10,39 +10,34 @@ typedef struct
   void *zmq_socket;
 } cipc_zmq_private;
 
-static int
-cipc_zmq_init (void **context, void *config)
+static cipc_err
+cipc_zmq_init (void **context, const void *config)
 {
+  if (!context || !config)
+    return CIPC_NULL_PTR;
+
   cipc_zmq_config *zmq_config = (cipc_zmq_config *)config;
 
   cipc_zmq_private *zctx = malloc (sizeof (cipc_zmq_private));
   if (!zctx)
-    {
-      fprintf (stderr, "Failed to alloc memory for zctx\n");
-
-      return -1;
-    }
+    return CIPC_BAD_ALLOC;
 
   zctx->zmq_context = zmq_ctx_new ();
   if (!zctx->zmq_context)
     {
-      fprintf (stderr, "Failed to create zmq context\n");
-
       free (zctx);
 
-      return -1;
+      return CIPC_BAD_ZMQ_CONTEXT;
     }
 
   zctx->zmq_socket = zmq_socket (zctx->zmq_context, zmq_config->socket);
   if (!zctx->zmq_socket)
     {
-      fprintf (stderr, "Failed to create ZMQ socket\n");
-
       zmq_ctx_destroy (zctx->zmq_context);
 
       free (zctx);
 
-      return -1;
+      return CIPC_BAD_ZMQ_SOCKET;
     }
 
   zmq_setsockopt (zctx->zmq_socket, ZMQ_SNDTIMEO, &zmq_config->timeout,
@@ -65,7 +60,8 @@ cipc_zmq_init (void **context, void *config)
           zmq_close (zctx->zmq_socket);
           zmq_ctx_destroy (zctx->zmq_context);
           free (zctx);
-          return -1;
+
+          return CIPC_BAD_ZMQ_BIND;
         }
     }
   else
@@ -77,26 +73,27 @@ cipc_zmq_init (void **context, void *config)
           zmq_close (zctx->zmq_socket);
           zmq_ctx_destroy (zctx->zmq_context);
           free (zctx);
-          return -1;
+
+          return CIPC_BAD_ZMQ_CONNECT;
         }
     }
 
   *context = zctx;
 
-  return 0;
+  return CIPC_OK;
 }
 
-static int
+static cipc_err
 cipc_zmq_send (void *context, const char *data, size_t length)
 {
   cipc_zmq_private *zctx = (cipc_zmq_private *)context;
 
   int rc = zmq_send (zctx->zmq_socket, data, length, 0);
 
-  return (rc >= 0) ? 0 : -1; // TODO: this needs proper error handling
+  return (rc >= 0) ? CIPC_OK : CIPC_BAD_ZMQ_SEND;
 }
 
-static int
+static cipc_err
 cipc_zmq_recv (void *context, char *buffer, size_t length)
 {
   cipc_zmq_private *zctx = (cipc_zmq_private *)context;
@@ -107,10 +104,10 @@ cipc_zmq_recv (void *context, char *buffer, size_t length)
     {
       buffer[rc] = '\0';
 
-      return rc;
+      return CIPC_OK;
     }
 
-  return -1;
+  return CIPC_BAD_ZMQ_RECV;
 }
 
 static void
