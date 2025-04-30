@@ -139,17 +139,21 @@ cipc_zmq_recv (void *context, char *buffer, size_t length)
   return CIPC_BAD_ZMQ_RECV;
 }
 
-static void
+void
 cipc_zmq_free (void *context)
 {
-  cipc_zmq_private *zctx = (cipc_zmq_private *)context;
-  if (zctx)
-    {
-      zmq_close (zctx->zmq_socket);
-      zmq_ctx_destroy (zctx->zmq_context);
+  if (!context)
+    return;
 
-      free (zctx);
-    }
+  cipc_zmq_private *zctx = (cipc_zmq_private *)context;
+
+  if (zctx->zmq_socket)
+    zmq_close (zctx->zmq_socket);
+
+  if (zctx->zmq_context)
+    zmq_ctx_destroy (zctx->zmq_context);
+
+  free (zctx);
 }
 
 cipc *
@@ -168,4 +172,73 @@ cipc_create_zmq (void)
   instance->context = NULL;
 
   return instance;
+}
+
+cipc_zmq_config *
+cipc_zmq_config_default (const char *address, int socket_type, cipc_zmq_mode mode)
+{
+  cipc_zmq_config *cfg = calloc (1, sizeof (cipc_zmq_config));
+  if (!cfg)
+    return NULL;
+
+  cfg->address = address;
+  cfg->socket_type = socket_type;
+  cfg->mode = mode;
+
+  cfg->sockopt_linger = 0;
+  cfg->sockopt_sndhwm = 1000;
+  cfg->sockopt_rcvhwm = 1000;
+  cfg->sockopt_sndtimeo = 5000;
+  cfg->sockopt_rcvtimeo = 5000;
+  cfg->sockopt_reconnect_ivl = 100;
+  cfg->sockopt_reconnect_ivl_max = 0;
+  cfg->sockopt_tcp_keepalive = 1;
+  cfg->sockopt_tcp_keepalive_idle = -1;
+  cfg->sockopt_tcp_keepalive_cnt = -1;
+  cfg->sockopt_tcp_keepalive_intvl = -1;
+  cfg->sockopt_maxmsgsize = -1;
+  cfg->sockopt_router_mandatory = 0;
+  cfg->sockopt_ipv6 = 0;
+  cfg->sockopt_identity = 0;
+  cfg->sockopt_name = NULL;
+
+  cfg->topics = NULL;
+  cfg->num_topics = 0;
+
+  cfg->secopt_pubkey = NULL;
+  cfg->secopt_privkey = NULL;
+  cfg->secopt_svkey = NULL;
+
+  return cfg;
+}
+
+cipc_zmq_config *
+cipc_zmq_config_pub (const char *address)
+{
+  return cipc_zmq_config_default (address, ZMQ_PUB, CIPC_ZMQ_MODE_CONNECT);
+}
+
+cipc_zmq_config *
+cipc_zmq_config_sub (const char *address, const char **topics, size_t num_topics)
+{
+  cipc_zmq_config *cfg = cipc_zmq_config_default (address, ZMQ_SUB, CIPC_ZMQ_MODE_BIND);
+  if (!cfg)
+    return NULL;
+
+  cfg->topics = topics;
+  cfg->num_topics = num_topics;
+
+  return cfg;
+}
+
+cipc_zmq_config *
+cipc_zmq_config_req (const char *address)
+{
+  return cipc_zmq_config_default (address, ZMQ_REQ, CIPC_ZMQ_MODE_CONNECT);
+}
+
+cipc_zmq_config *
+cipc_zmq_config_rep (const char *address)
+{
+  return cipc_zmq_config_default (address, ZMQ_REP, CIPC_ZMQ_MODE_BIND);
 }
