@@ -5,7 +5,7 @@
 
 typedef struct cipc
 {
-  int (*init) (void **context, const char *config);
+  int (*init) (void **context, void *config);
   int (*send) (void *context, const char *data, size_t length);
   int (*recv) (void *context, char *buffer, size_t length);
   void (*free) (void *context);

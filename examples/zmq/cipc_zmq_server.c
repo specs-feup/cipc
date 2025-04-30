@@ -1,12 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <zmq.h>
 
+#include "backend/cipc_zmq.h"
 #include "cipc.h"
 
 int
 main (void)
 {
+  cipc_zmq_config config = (cipc_zmq_config){ .address = "tcp://*:5555",
+                                              .socket = ZMQ_REP,
+                                              .timeout = 5000,
+                                              .retries = -1,
+                                              .linger = 0,
+                                              .sndhwm = -1,
+                                              .rcvhwm = -1 };
+
   cipc *server = cipc_create (CIPC_PROTOCOL_ZMQ);
   if (!server)
     {
@@ -15,7 +25,7 @@ main (void)
       return EXIT_FAILURE;
     }
 
-  if (server->init (&server->context, "tcp://*:5555") != 0)
+  if (server->init (&server->context, &config) != 0)
     {
       fprintf (stderr, "Failed to init server\n");
 
