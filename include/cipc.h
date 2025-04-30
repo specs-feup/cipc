@@ -13,6 +13,7 @@ typedef enum
   CIPC_BAD_ZMQ_CONNECT,
   CIPC_BAD_ZMQ_SEND,
   CIPC_BAD_ZMQ_RECV,
+  CIPC_BAD_TCP_SOCK_OPT,
   CIPC_NULL_PTR,
 } cipc_err;
 
