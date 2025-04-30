@@ -42,4 +42,10 @@ typedef struct
 
 cipc *cipc_create_zmq (void);
 
+cipc_zmq_config *cipc_zmq_config_default (const char *address, int socket_type, cipc_zmq_mode mode);
+cipc_zmq_config *cipc_zmq_config_pub (const char *address);
+cipc_zmq_config *cipc_zmq_config_sub (const char *address, const char **topics, size_t num_topics);
+cipc_zmq_config *cipc_zmq_config_req (const char *address);
+cipc_zmq_config *cipc_zmq_config_rep (const char *address);
+
 #endif // CIPC_BACKEND_ZMQ_H
