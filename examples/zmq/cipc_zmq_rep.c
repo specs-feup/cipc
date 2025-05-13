@@ -31,7 +31,7 @@ server_init (cipc **server, const cipc_zmq_config *config)
       return EXIT_FAILURE;
     }
 
-  if ((*server)->init (&(*server)->context, config) != CIPC_OK)
+    if ((*server)->init (&(*server)->context, config) != CIPC_OK)
     {
       fprintf (stderr, "Failed to initialize server!\n");
 

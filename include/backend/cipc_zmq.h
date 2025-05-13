@@ -3,6 +3,10 @@
 
 #include "cipc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
 typedef enum
 {
   CIPC_ZMQ_MODE_BIND,
@@ -47,5 +51,9 @@ cipc_zmq_config *cipc_zmq_config_pub (const char *address);
 cipc_zmq_config *cipc_zmq_config_sub (const char *address, const char **topics, size_t num_topics);
 cipc_zmq_config *cipc_zmq_config_req (const char *address);
 cipc_zmq_config *cipc_zmq_config_rep (const char *address);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CIPC_BACKEND_ZMQ_H

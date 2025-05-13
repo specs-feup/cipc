@@ -3,6 +3,11 @@
 
 #include <stdlib.h>
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
 {
   CIPC_OK = 0,
@@ -44,5 +49,9 @@ typedef enum
 cipc *cipc_create (cipc_protocol protocol);
 
 void cipc_free (cipc *instance);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CIPC_H
