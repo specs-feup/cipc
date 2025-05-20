@@ -1,5 +1,6 @@
 #include "cipc.h"
 #include "backend/cipc_zmq.h"
+#include "backend/cipc_tcp.h"
 
 #include <stdio.h>
 
@@ -11,6 +12,7 @@ cipc_create (cipc_protocol protocol)
     case CIPC_PROTOCOL_ZMQ:
       return cipc_create_zmq ();
     case CIPC_PROTOCOL_TCP:
+      return cipc_create_tcp ();
     case CIPC_PROTOCOL_GRPC:
     default:
       return NULL;

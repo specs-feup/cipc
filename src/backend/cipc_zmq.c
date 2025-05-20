@@ -4,6 +4,11 @@
 #include "backend/cipc_zmq.h"
 #include "cipc.h"
 
+#define CIPC_ZMQ_CONFIG_DEFAULT_SNDTIMEO_MS 5000
+#define CIPC_ZMQ_CONFIG_DEFAULT_RCVTIMEO_MS 5000
+#define CIPC_ZMQ_CONFIG_DEFAULT_RETRY_INTERVAL_MS 100
+#define CIPC_ZMQ_CONFIG_DEFAULT_RETRIES 3
+
 typedef struct
 {
   void *zmq_context;
@@ -16,36 +21,12 @@ helper_set_sockopts (void *socket, const cipc_zmq_config *config)
   if (!socket || !config)
     return CIPC_NULL_PTR;
 
-  zmq_setsockopt (socket, ZMQ_LINGER, &config->sockopt_linger, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_SNDHWM, &config->sockopt_sndhwm, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_RCVHWM, &config->sockopt_rcvhwm, sizeof (int));
   zmq_setsockopt (socket, ZMQ_SNDTIMEO, &config->sockopt_sndtimeo, sizeof (int));
   zmq_setsockopt (socket, ZMQ_RCVTIMEO, &config->sockopt_rcvtimeo, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL, &config->sockopt_reconnect_ivl, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL_MAX, &config->sockopt_reconnect_ivl_max, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_IPV6, &config->sockopt_ipv6, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE, &config->sockopt_tcp_keepalive, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_IDLE, &config->sockopt_tcp_keepalive_idle,
-                  sizeof (int));
-  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_CNT, &config->sockopt_tcp_keepalive_cnt, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_TCP_KEEPALIVE_INTVL, &config->sockopt_tcp_keepalive_intvl,
-                  sizeof (int));
-  zmq_setsockopt (socket, ZMQ_ROUTER_MANDATORY, &config->sockopt_router_mandatory, sizeof (int));
-  zmq_setsockopt (socket, ZMQ_MAXMSGSIZE, &config->sockopt_maxmsgsize, sizeof (int));
 
-  if (config->sockopt_identity)
-    zmq_setsockopt (socket, ZMQ_IDENTITY, &config->sockopt_identity, sizeof (int));
-
-  if (config->secopt_pubkey && config->secopt_privkey && config->secopt_svkey)
-    {
-      zmq_setsockopt (socket, ZMQ_CURVE_PUBLICKEY, config->secopt_pubkey, 40);
-      zmq_setsockopt (socket, ZMQ_CURVE_SECRETKEY, config->secopt_privkey, 40);
-      zmq_setsockopt (socket, ZMQ_CURVE_SERVERKEY, config->secopt_svkey, 40);
-    }
-
-  if (config->socket_type == ZMQ_SUB && config->topics)
-    for (size_t i = 0; i < config->num_topics; i++)
-      zmq_setsockopt (socket, ZMQ_SUBSCRIBE, config->topics[i], strlen (config->topics[i]));
+  int retry_interval = CIPC_ZMQ_CONFIG_DEFAULT_RETRY_INTERVAL_MS;
+  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL, &retry_interval, sizeof (int));
+  zmq_setsockopt (socket, ZMQ_RECONNECT_IVL_MAX, &config->sockopt_retries, sizeof (int));
 
   return CIPC_OK;
 }
@@ -185,48 +166,9 @@ cipc_zmq_config_default (const char *address, int socket_type, cipc_zmq_mode mod
   cfg->socket_type = socket_type;
   cfg->mode = mode;
 
-  cfg->sockopt_linger = 0;
-  cfg->sockopt_sndhwm = 1000;
-  cfg->sockopt_rcvhwm = 1000;
-  cfg->sockopt_sndtimeo = 5000;
-  cfg->sockopt_rcvtimeo = 5000;
-  cfg->sockopt_reconnect_ivl = 100;
-  cfg->sockopt_reconnect_ivl_max = 0;
-  cfg->sockopt_tcp_keepalive = 1;
-  cfg->sockopt_tcp_keepalive_idle = -1;
-  cfg->sockopt_tcp_keepalive_cnt = -1;
-  cfg->sockopt_tcp_keepalive_intvl = -1;
-  cfg->sockopt_maxmsgsize = -1;
-  cfg->sockopt_router_mandatory = 0;
-  cfg->sockopt_ipv6 = 0;
-  cfg->sockopt_identity = 0;
-  cfg->sockopt_name = NULL;
-
-  cfg->topics = NULL;
-  cfg->num_topics = 0;
-
-  cfg->secopt_pubkey = NULL;
-  cfg->secopt_privkey = NULL;
-  cfg->secopt_svkey = NULL;
-
-  return cfg;
-}
-
-cipc_zmq_config *
-cipc_zmq_config_pub (const char *address)
-{
-  return cipc_zmq_config_default (address, ZMQ_PUB, CIPC_ZMQ_MODE_CONNECT);
-}
-
-cipc_zmq_config *
-cipc_zmq_config_sub (const char *address, const char **topics, size_t num_topics)
-{
-  cipc_zmq_config *cfg = cipc_zmq_config_default (address, ZMQ_SUB, CIPC_ZMQ_MODE_BIND);
-  if (!cfg)
-    return NULL;
-
-  cfg->topics = topics;
-  cfg->num_topics = num_topics;
+  cfg->sockopt_sndtimeo = CIPC_ZMQ_CONFIG_DEFAULT_SNDTIMEO_MS;
+  cfg->sockopt_rcvtimeo = CIPC_ZMQ_CONFIG_DEFAULT_RCVTIMEO_MS;
+  cfg->sockopt_retries = CIPC_ZMQ_CONFIG_DEFAULT_RETRIES;
 
   return cfg;
 }
@@ -241,4 +183,31 @@ cipc_zmq_config *
 cipc_zmq_config_rep (const char *address)
 {
   return cipc_zmq_config_default (address, ZMQ_REP, CIPC_ZMQ_MODE_BIND);
+}
+
+void
+cipc_zmq_config_set_sndtimeo (cipc_zmq_config *config, int sndtimeo)
+{
+  if (!config)
+    return;
+
+  config->sockopt_sndtimeo = sndtimeo;
+}
+
+void
+cipc_zmq_config_set_rcvtimeo (cipc_zmq_config *config, int rcvtimeo)
+{
+  if (!config)
+    return;
+
+  config->sockopt_rcvtimeo = rcvtimeo;
+}
+
+void
+cipc_zmq_config_set_retries (cipc_zmq_config *config, int retries)
+{
+  if (!config)
+    return;
+
+  config->sockopt_retries = retries;
 }

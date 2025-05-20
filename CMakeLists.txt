@@ -14,6 +14,7 @@ set(EXAMPLES_DIR ${CMAKE_SOURCE_DIR}/examples)
 add_library(cipc STATIC
     ${SRC_DIR}/cipc.c
     ${SRC_DIR}/backend/cipc_zmq.c
+    ${SRC_DIR}/backend/cipc_tcp.c
 )
 set_target_properties(cipc PROPERTIES OUTPUT_NAME "cipc")
 target_include_directories(cipc PUBLIC ${INC_DIR})
@@ -37,9 +38,15 @@ set(EXAMPLES_TCP ${EXAMPLES_DIR}/tcp)
 
 add_executable(example_zmq_req ${EXAMPLES_ZMQ}/cipc_zmq_req.c)
 add_executable(example_zmq_rep ${EXAMPLES_ZMQ}/cipc_zmq_rep.c)
+add_executable(example_tcp_client ${EXAMPLES_TCP}/cipc_tcp_client.c)
+add_executable(example_tcp_server ${EXAMPLES_TCP}/cipc_tcp_server.c)
 
 target_include_directories(example_zmq_req PRIVATE ${INC_DIR})
 target_include_directories(example_zmq_rep PRIVATE ${INC_DIR})
+target_include_directories(example_tcp_client PRIVATE ${INC_DIR})
+target_include_directories(example_tcp_server PRIVATE ${INC_DIR})
 
 target_link_libraries(example_zmq_req cipc zmq)
 target_link_libraries(example_zmq_rep cipc zmq)
+target_link_libraries(example_tcp_client cipc zmq)
+target_link_libraries(example_tcp_server cipc zmq)
