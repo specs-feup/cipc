@@ -6,7 +6,7 @@
 
 #define CIPC_ZMQ_CONFIG_DEFAULT_SNDTIMEO_MS 5000
 #define CIPC_ZMQ_CONFIG_DEFAULT_RCVTIMEO_MS 5000
-#define CIPC_ZMQ_CONFIG_DEFAULT_RETRY_INTERVAL_MS 100
+#define CIPC_ZMQ_CONFIG_DEFAULT_RETRY_INTERVAL_MS 10
 #define CIPC_ZMQ_CONFIG_DEFAULT_RETRIES 3
 
 typedef struct
@@ -104,7 +104,7 @@ cipc_zmq_send (void *context, const char *data, size_t length)
 }
 
 static cipc_err
-cipc_zmq_recv (void *context, char *buffer, size_t length)
+cipc_zmq_recv (void *context, char *buffer, size_t length, size_t *len_out)
 {
   cipc_zmq_private *zctx = (cipc_zmq_private *)context;
 
@@ -113,6 +113,9 @@ cipc_zmq_recv (void *context, char *buffer, size_t length)
   if (rc >= 0)
     {
       buffer[rc] = '\0';
+
+      if (len_out != NULL)
+        *len_out = (size_t)rc;
 
       return CIPC_OK;
     }

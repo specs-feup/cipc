@@ -58,6 +58,7 @@ main (void)
   char buffer[CLIENT_BUFFER_SIZE] = { 0 };
 
   int result = EXIT_FAILURE;
+  size_t offset = 0;
 
   if (client_init (&client, config) == EXIT_SUCCESS)
     {
@@ -65,7 +66,7 @@ main (void)
         {
           fprintf (stderr, "Failed to send message: %s\n", CLIENT_MESSAGE);
         }
-      else if (client->recv (client->context, buffer, sizeof (buffer)) != CIPC_OK)
+      else if (client->recv (client->context, buffer, sizeof (buffer), &offset) != CIPC_OK)
         {
           fprintf (stderr, "Failed to receive response!\n");
         }

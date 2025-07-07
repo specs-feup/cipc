@@ -33,7 +33,7 @@ typedef struct cipc
 {
   cipc_err (*init) (void **context, const void *config);
   cipc_err (*send) (void *context, const char *data, size_t length);
-  cipc_err (*recv) (void *context, char *buffer, size_t length);
+  cipc_err (*recv) (void *context, char *buffer, size_t length, size_t *len_out);
   void (*free) (void *context);
 
   void *context;

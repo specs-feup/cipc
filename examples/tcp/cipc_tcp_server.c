@@ -50,11 +50,13 @@ server_loop (cipc *server)
 {
   char buffer[SERVER_BUFFER_SIZE] = { 0 };
 
+  size_t offset = 0;
+
   fprintf (stdout, "[TCP Server] Listening on %s:%d\n", SERVER_HOST, SERVER_PORT);
 
   while (1)
     {
-      if (server->recv (server->context, buffer, sizeof (buffer)) != CIPC_OK)
+      if (server->recv (server->context, buffer, sizeof (buffer), &offset) != CIPC_OK)
         {
           fprintf (stderr, "Failed to receive message!\n");
 

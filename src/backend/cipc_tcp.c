@@ -157,9 +157,12 @@ cipc_tcp_init (void **context, const void *config)
 }
 
 static cipc_err
-cipc_tcp_send (void *context, const char *data, size_t length)
+cipc_tcp_send (void *context, const char *data, size_t length, size_t *len_out)
 {
   cipc_tcp_private *tctx = (cipc_tcp_private *)context;
+
+  // WARNING: len_out is deprecated!
+  if (len_out != NULL) *len_out = 0;
 
   ssize_t sent = send (tctx->sockfd, data, length, 0);
   if (sent < 0)
@@ -168,7 +171,7 @@ cipc_tcp_send (void *context, const char *data, size_t length)
 
       return CIPC_BAD_TCP_SEND;
     }
-
+  
   if ((size_t)sent != length)
     return CIPC_BAD_TCP_SEND;
 
